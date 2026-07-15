@@ -414,6 +414,9 @@
   .qform .submit:disabled{opacity:0.6;cursor:default}
   .qform .fine{font-size:0.75rem;color:#7d9db2;font-weight:500;margin-top:0.9rem}
   .qform .gotcha{display:none}
+  .qform .avail{font-size:0.7rem;color:#7d9db2;font-weight:600;margin-top:0.35rem}
+  .qform .date-error{display:none;font-size:0.74rem;color:#b3261e;font-weight:700;margin-top:0.35rem}
+  .qform input[type="date"]{color-scheme:light;min-height:2.1rem}
   .form-error{display:none;color:#b3261e;font-size:0.82rem;font-weight:600;margin-top:0.8rem}
   .form-success{
     display:none;padding:3rem 2.2rem;text-align:center;align-self:center;
@@ -932,6 +935,9 @@
       </div>
       <div class="row2">
         <div class="field"><label for="f-email">Your Email</label><input id="f-email" name="email" type="email" placeholder="you@example.com"/></div>
+        <div class="field"><label for="f-address">Service Address</label><input id="f-address" name="address" type="text" placeholder="1234 Maple Dr, Katy" required/></div>
+      </div>
+      <div class="row2">
         <div class="field"><label for="f-service">Service Needed</label>
           <select id="f-service" name="service">
             <option>Driveway or sidewalk</option>
@@ -941,8 +947,13 @@
             <option>Something else</option>
           </select>
         </div>
+        <div class="field"><label for="f-date">Preferred Date</label>
+          <input id="f-date" name="preferred_date" type="date" required/>
+          <p class="avail">Available Tuesday to Thursday and Sunday</p>
+          <p class="date-error" id="dateError" role="alert">We are not out on that day. Please pick a Tuesday, Wednesday, Thursday, or Sunday.</p>
+        </div>
       </div>
-      <div class="field"><label for="f-msg">Message</label><textarea id="f-msg" name="message" rows="3" placeholder="Address, size of the job, best time to reach you"></textarea></div>
+      <div class="field"><label for="f-msg">Message</label><textarea id="f-msg" name="message" rows="3" placeholder="Size of the job, best time to reach you, anything else"></textarea></div>
       <button class="submit" type="submit">Send Message</button>
       <p class="fine">No spam, no obligation. We only use this to send your quote.</p>
       <p class="form-error" id="formError" role="alert">Something went wrong sending your message. Please try again, or text us instead.</p>
@@ -1074,8 +1085,32 @@
   // ----- Quote form: AJAX submit to Formspree with success state -----
   var quoteForm = document.getElementById('quoteForm');
   if (quoteForm) {
+    var dateInput = document.getElementById('f-date');
+    var dateError = document.getElementById('dateError');
+    var today = new Date();
+    dateInput.min = today.getFullYear() + '-' +
+      String(today.getMonth() + 1).padStart(2, '0') + '-' +
+      String(today.getDate()).padStart(2, '0');
+    function validateDay(){
+      if (!dateInput.value) { dateInput.setCustomValidity(''); dateError.style.display = 'none'; return; }
+      var parts = dateInput.value.split('-');
+      var day = new Date(parts[0], parts[1] - 1, parts[2]).getDay();
+      var openDays = [0, 2, 3, 4];
+      if (openDays.indexOf(day) === -1) {
+        dateInput.setCustomValidity('Please pick a Tuesday, Wednesday, Thursday, or Sunday.');
+        dateError.style.display = 'block';
+      } else {
+        dateInput.setCustomValidity('');
+        dateError.style.display = 'none';
+      }
+    }
+    dateInput.addEventListener('change', validateDay);
+    dateInput.addEventListener('input', validateDay);
+
     quoteForm.addEventListener('submit', function(e){
       e.preventDefault();
+      validateDay();
+      if (!quoteForm.reportValidity()) return;
       var btn = quoteForm.querySelector('.submit');
       btn.disabled = true;
       btn.textContent = 'Sending...';
